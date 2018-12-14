@@ -52,11 +52,10 @@ module usb_uart_bridge_ep (
   assign in_ep_data = uart_di;
 
   reg [2:0] state = 0;
-  reg [20:0] delay_counter = 0;
+  reg [1:0] delay_counter = 0;
 
   always @(posedge clk) begin
     in_ep_data_put <= 0;
-    //in_ep_req <= 0;
     in_ep_data_done <= 0;
     case (state) 
     0: begin
@@ -82,11 +81,11 @@ module usb_uart_bridge_ep (
       in_ep_data_done <= 1;
       in_ep_req <= 0;
       state <= 4;
-      uart_wait <= 0;
       delay_counter <= 0;
     end
     4: begin
       if (&delay_counter) begin
+        uart_wait <= 0;
         state <= 0;
         led <= 0;
       end else delay_counter <= delay_counter + 1;

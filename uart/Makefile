@@ -21,6 +21,7 @@ DEVICE = lp8k
 PKG = cm81
 
 all: $(PROJ).rpt $(PROJ).bin
+	tinyprog -p $(PROJ).bin
 
 %.blif: %.v usb_uart.v usb_uart_bridge_ep.v ../usb/*.v 
 	yosys -q -p 'synth_ice40 -top $(PROJ) -blif $@' $^

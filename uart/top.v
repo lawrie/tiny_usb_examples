@@ -45,6 +45,8 @@ module top (
     .SCLK()
   );
 
+  localparam TEXT_LEN = 13;
+
   reg [7:0] uart_di;
   wire [7:0] uart_do;
   reg uart_re, uart_we;
@@ -54,54 +56,53 @@ module top (
   reg [5:0] reset_cnt = 0;
   wire resetn = &reset_cnt;
 
-  always @(posedge clk_48mhz) begin
-    reset_cnt <= reset_cnt + !resetn;
-  end
+  always @(posedge clk_48mhz) reset_cnt <= reset_cnt + !resetn;
 
   // Create the text string
-  reg [7:0] text [0:12];
+  reg [7:0] text [0:TEXT_LEN-1];
+  reg [3:0] char_count;
 
   initial begin
-  text[0]  <= "H";
-  text[1]  <= "e";
-  text[2]  <= "l";
-  text[3]  <= "l";
-  text[4]  <= "o";
-  text[5]  <= " ";
-  text[6]  <= "W";
-  text[7]  <= "o";
-  text[8]  <= "r";
-  text[9]  <= "l";
-  text[10] <= "d";
-  text[11] <= "!";
-  text[12] <= "\n";
+    text[0]  <= "H";
+    text[1]  <= "e";
+    text[2]  <= "l";
+    text[3]  <= "l";
+    text[4]  <= "o";
+    text[5]  <= " ";
+    text[6]  <= "W";
+    text[7]  <= "o";
+    text[8]  <= "r";
+    text[9]  <= "l";
+    text[10] <= "d";
+    text[11] <= "!";
+    text[12] <= "\n";
   end
 
-  // Send characters about every second
-  reg [22:0] delay_count;
-  reg [3:0] char_count;
-  reg wait_for_send;
+  // Send message about every second
+  reg [25:0] delay_count;
 
   always @(posedge clk_48mhz) begin
     delay_count <= delay_count + 1;
-    if  (resetn && !wait_for_send) begin
-      if (&delay_count) begin
-        if (char_count == 12) char_count <= 0;
-        else char_count <= char_count + 1;
-        uart_di <= text[char_count];
-        uart_we <= 1;
-        wait_for_send <= 1;
-      end
-    end else if (!uart_wait) begin
+
+    if (resetn && !uart_wait) begin
       uart_we <= 0;
-      wait_for_send <= 0;
+
+      if (!uart_we) begin // wait a clock cycle before setting write enable again
+        if (char_count == TEXT_LEN) begin
+          if (&delay_count) char_count <= 0; // wait for delay before sending message again
+        end else begin
+          uart_di <= text[char_count];
+          uart_we <= 1;
+          char_count <= char_count + 1;
+        end
+      end
     end
   end
 
   // usb uart
   usb_uart uart (
     .clk_48mhz  (clk_48mhz),
-    .resetn      (resetn),
+    .resetn     (resetn),
 
     .usb_p_tx(usb_p_tx),
     .usb_n_tx(usb_n_tx),
@@ -123,11 +124,36 @@ module top (
   wire usb_p_rx;
   wire usb_n_rx;
   wire usb_tx_en;
+  wire usb_p_in;
+  wire usb_n_in;
 
   assign pin_pu = 1'b1;
-  assign pin_usbp = usb_tx_en ? usb_p_tx : 1'bz;
-  assign pin_usbn = usb_tx_en ? usb_n_tx : 1'bz;
-  assign usb_p_rx = usb_tx_en ? 1'b1 : pin_usbp;
-  assign usb_n_rx = usb_tx_en ? 1'b0 : pin_usbn;
+  assign usb_p_rx = usb_tx_en ? 1'b1 : usb_p_in;
+  assign usb_n_rx = usb_tx_en ? 1'b0 : usb_n_in;
+
+  SB_IO #(
+    .PIN_TYPE(6'b 1010_01), // PIN_OUTPUT_TRISTATE - PIN_INPUT
+    .PULLUP(1'b 0)
+  ) 
+  iobuf_usbp 
+  (
+    .PACKAGE_PIN(pin_usbp),
+    .OUTPUT_ENABLE(usb_tx_en),
+    .D_OUT_0(usb_p_tx),
+    .D_IN_0(usb_p_in)
+  );
+
+  SB_IO #(
+    .PIN_TYPE(6'b 1010_01), // PIN_OUTPUT_TRISTATE - PIN_INPUT
+    .PULLUP(1'b 0)
+  ) 
+  iobuf_usbn 
+  (
+    .PACKAGE_PIN(pin_usbn),
+    .OUTPUT_ENABLE(usb_tx_en),
+    .D_OUT_0(usb_n_tx),
+    .D_IN_0(usb_n_in)
+  );
+
 
 endmodule
