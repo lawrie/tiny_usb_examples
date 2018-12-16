@@ -1,0 +1,7 @@
+set_io pin_led B3
+set_io pin_usbp B4
+set_io pin_usbn A4
+set_io pin_pu A3
+set_io pin_clk B2
+
+set_io audio_left D9
