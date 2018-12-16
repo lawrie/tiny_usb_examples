@@ -23,7 +23,7 @@ PKG = cm81
 all: $(PROJ).rpt $(PROJ).bin
 	tinyprog -p $(PROJ).bin
 
-%.blif: %.v usb_uart.v usb_uart_bridge_ep.v ../usb/*.v 
+%.blif: %.v usb_uart.v usb_uart_bridge_ep.v tone.v ../usb/*.v 
 	yosys -q -p 'synth_ice40 -top $(PROJ) -blif $@' $^
 
 %.asc: $(PIN_DEF) %.blif
