@@ -18,7 +18,8 @@ module usb_uart (
   output [7:0] uart_do,
   output uart_wait,
 
-  output led
+  output led,
+  output [7:0] leds
 );
 
   ////////////////////////////////////////////////////////////////////////////////
@@ -133,7 +134,8 @@ module usb_uart (
     .uart_do(uart_do),
     .uart_wait(uart_wait),
 
-    .led(led)
+    .led(led),
+    .leds(leds)
 
   );
 

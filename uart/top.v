@@ -5,7 +5,8 @@ module top (
   inout  pin_usbn,
   output pin_pu,
 
-  output pin_led
+  output pin_led,
+  output [7:0] leds
 );
 
   ////////////////////////////////////////////////////////////////////////////////
@@ -47,6 +48,9 @@ module top (
 
   localparam TEXT_LEN = 13;
 
+  reg [7:0] dummy_leds;
+  assign leds = {uart_we, uart_re, uart_wait, state};
+
   reg [7:0] uart_di;
   wire [7:0] uart_do;
   reg uart_re, uart_we;
@@ -79,14 +83,35 @@ module top (
   end
 
   // Send message about every second
-  reg [25:0] delay_count;
+  reg delay_count;
+  reg [1:0] state = 0;
 
   always @(posedge clk_48mhz) begin
     delay_count <= delay_count + 1;
 
     if (resetn && !uart_wait) begin
       uart_we <= 0;
+      uart_re <= 0;
 
+      if (!uart_we && !uart_re) begin
+        case (state)
+        0:begin
+          uart_re <= 1;
+          if (&delay_count) state <= 1;
+        end 
+        1: begin
+          uart_re <= 0;
+          uart_di <= uart_do;
+          uart_we <= 1;
+          state <= 2;
+        end
+        2: begin
+          if (&delay_count) state <= 0;
+        end
+        endcase
+      end
+
+      /*
       if (!uart_we) begin // wait a clock cycle before setting write enable again
         if (char_count == TEXT_LEN) begin
           if (&delay_count) char_count <= 0; // wait for delay before sending message again
@@ -96,6 +121,7 @@ module top (
           char_count <= char_count + 1;
         end
       end
+      */
     end
   end
 
@@ -116,7 +142,8 @@ module top (
     .uart_do  (uart_do),
     .uart_wait(uart_wait),
 
-    .led(pin_led)
+    .led(pin_led),
+    .leds(dummy_leds)
   );
 
   wire usb_p_tx;
@@ -128,6 +155,14 @@ module top (
   wire usb_n_in;
 
   assign pin_pu = 1'b1;
+
+/*
+  assign pin_usbp = usb_tx_en ? usb_p_tx : 1'bz;
+  assign pin_usbn = usb_tx_en ? usb_n_tx : 1'bz;
+  assign usb_p_rx = usb_tx_en ? 1'b1 : pin_usbp;
+  assign usb_n_rx = usb_tx_en ? 1'b0 : pin_usbn;
+*/
+
   assign usb_p_rx = usb_tx_en ? 1'b1 : usb_p_in;
   assign usb_n_rx = usb_tx_en ? 1'b0 : usb_n_in;
 
@@ -154,6 +189,5 @@ module top (
     .D_OUT_0(usb_n_tx),
     .D_IN_0(usb_n_in)
   );
-
 
 endmodule

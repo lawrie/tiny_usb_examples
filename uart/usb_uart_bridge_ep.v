@@ -35,34 +35,47 @@ module usb_uart_bridge_ep (
   output [7:0] uart_do,
   output reg uart_wait = 0,
 
-  output reg led
+  output reg led = 0,
+  output [7:0] leds
 
 );
 
   assign out_ep_stall = 1'b0;
   assign in_ep_stall = 1'b0;
 
-  assign out_ep_req = 0;
+  reg get_out_data = 0;
+  assign leds = {uart_we, uart_re, uart_wait,
+                 state, 
+                 out_ep_grant, out_ep_data_avail};
+  
+  //assign leds = out_ep_data;
 
-  assign out_ep_data_get = 0;
+  assign out_ep_req = out_ep_data_avail;
+  assign out_ep_data_get = get_out_data && out_ep_grant;
 
-  assign uart_do = 0;
+  wire out_data_ready = out_ep_grant && out_ep_data_avail;
+  reg out_data_valid = 0;
+  always @(posedge clk) out_data_valid <= out_data_ready;
 
-  //assign in_ep_data = 8'd72;
   assign in_ep_data = uart_di;
 
   reg [2:0] state = 0;
-  reg [1:0] delay_counter = 0;
 
   always @(posedge clk) begin
     in_ep_data_put <= 0;
     in_ep_data_done <= 0;
+    get_out_data <= 0;
+
     case (state) 
     0: begin
       if (uart_we) begin
-        led <= 1;
         state <= 1;
         uart_wait <= 1;
+      end 
+      else if (uart_re && out_data_ready) begin
+        uart_wait <= 1;
+        state <= 5;
+        get_out_data <= 1;
       end
     end
     1: begin
@@ -80,16 +93,22 @@ module usb_uart_bridge_ep (
     3: begin
       in_ep_data_done <= 1;
       in_ep_req <= 0;
+      uart_wait <= 0;
       state <= 4;
-      delay_counter <= 0;
     end
     4: begin
-      if (&delay_counter) begin
-        uart_wait <= 0;
-        state <= 0;
-        led <= 0;
-      end else delay_counter <= delay_counter + 1;
+      state <= 0;
     end
+    5: begin
+      state <= 6;
+      //uart_do <= out_ep_data;
+      uart_wait <= 0;
+    end
+    6: begin
+      uart_do <= out_ep_data;
+      state <= 4;
+    end  
     endcase
   end
+
 endmodule
