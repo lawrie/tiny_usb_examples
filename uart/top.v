@@ -48,8 +48,8 @@ module top (
 
   localparam TEXT_LEN = 13;
 
-  reg [7:0] dummy_leds;
   assign leds = {uart_we, uart_re, uart_wait, state};
+  assign pin_led = 1;
 
   reg [7:0] uart_di;
   wire [7:0] uart_do;
@@ -140,10 +140,7 @@ module top (
     .uart_re  (uart_re),
     .uart_di  (uart_di),
     .uart_do  (uart_do),
-    .uart_wait(uart_wait),
-
-    .led(pin_led),
-    .leds(dummy_leds)
+    .uart_wait(uart_wait)
   );
 
   wire usb_p_tx;

@@ -33,10 +33,7 @@ module usb_uart_bridge_ep (
   input uart_re,
   input [7:0] uart_di,
   output [7:0] uart_do,
-  output reg uart_wait = 0,
-
-  output reg led = 0,
-  output [7:0] leds
+  output reg uart_wait = 0
 
 );
 
@@ -44,21 +41,15 @@ module usb_uart_bridge_ep (
   assign in_ep_stall = 1'b0;
 
   reg get_out_data = 0;
-  assign leds = {uart_we, uart_re, uart_wait,
-                 state, 
-                 out_ep_grant, out_ep_data_avail};
   
-  //assign leds = out_ep_data;
-
   assign out_ep_req = out_ep_data_avail;
   assign out_ep_data_get = get_out_data && out_ep_grant;
 
   wire out_data_ready = out_ep_grant && out_ep_data_avail;
-  reg out_data_valid = 0;
-  always @(posedge clk) out_data_valid <= out_data_ready;
 
   assign in_ep_data = uart_di;
 
+  // State machine
   reg [2:0] state = 0;
 
   always @(posedge clk) begin
@@ -101,7 +92,6 @@ module usb_uart_bridge_ep (
     end
     5: begin
       state <= 6;
-      //uart_do <= out_ep_data;
       uart_wait <= 0;
     end
     6: begin

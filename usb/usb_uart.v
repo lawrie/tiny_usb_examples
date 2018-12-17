@@ -16,10 +16,7 @@ module usb_uart (
   input  uart_re,
   input  [7:0] uart_di,
   output [7:0] uart_do,
-  output uart_wait,
-
-  output led,
-  output [7:0] leds
+  output uart_wait
 );
 
   ////////////////////////////////////////////////////////////////////////////////
@@ -132,11 +129,7 @@ module usb_uart (
     .uart_re(uart_re),
     .uart_di(uart_di),
     .uart_do(uart_do),
-    .uart_wait(uart_wait),
-
-    .led(led),
-    .leds(leds)
-
+    .uart_wait(uart_wait)
   );
 
   wire nak_in_ep_grant;
