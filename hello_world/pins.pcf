@@ -1,0 +1,15 @@
+set_io pin_led B3
+set_io pin_usbp B4
+set_io pin_usbn A4
+set_io pin_pu A3
+set_io pin_clk B2
+
+# Diagnostic Leds
+set_io -nowarn leds[0] H9 # pin 6
+set_io -nowarn leds[1] D9 # pin 7
+set_io -nowarn leds[2] D8 # pin 8
+set_io -nowarn leds[3] C9 # pin 9
+set_io -nowarn leds[4] A9 # pin 10
+set_io -nowarn leds[5] B8 # pin 11
+set_io -nowarn leds[6] A8 # pin 12
+set_io -nowarn leds[7] B7 # pin 13
