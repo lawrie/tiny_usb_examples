@@ -23,11 +23,17 @@ PKG = cm81
 all: $(PROJ).rpt $(PROJ).bin
 	tinyprog -p $(PROJ).bin
 
-%.blif: %.v ../usb/*.v 
-	yosys -q -p 'synth_ice40 -top $(PROJ) -blif $@' $^
+#%.blif: %.v ../usb/*.v 
+#	yosys -q -p 'synth_ice40 -top $(PROJ) -blif $@' $^
 
-%.asc: $(PIN_DEF) %.blif
-	arachne-pnr -d 8k -P $(PKG) -o $@ -p $^
+#%.asc: $(PIN_DEF) %.blif
+#	arachne-pnr -d 8k -P $(PKG) -o $@ -p $^
+
+%.json: %.v ../usb/*.v
+	yosys -q -p 'synth_ice40 -top $(PROJ) -json $@' $^
+
+%.asc: $(PIN_DEF) %.json
+	nextpnr-ice40 --lp8k --package $(PKG) --freq 20 --json $(PROJ).json --pcf $(PIN_DEF) --asc $(PROJ).asc
 
 %.bin: %.asc
 	icepack $< $@
@@ -39,7 +45,7 @@ all: $(PROJ).rpt $(PROJ).bin
 	yosys -p 'read_blif -wideports $^; write_verilog $@'
 
 clean:
-	rm -f $(PROJ).blif $(PROJ).asc $(PROJ).rpt $(PROJ).bin $(PROJ)_0.bin $(PROJ)_1.bin fw.bin
+	rm -f $(PROJ).blif $(PROJ).asc $(PROJ).rpt $(PROJ).bin $(PROJ).json
 
 .SECONDARY:
 .PHONY: all clean

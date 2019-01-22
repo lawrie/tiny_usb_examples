@@ -36,7 +36,6 @@ module top (
     .PLLOUTCORE(clk_48mhz),
     .PLLOUTGLOBAL(),
     .EXTFEEDBACK(),
-    .DYNAMICDELAY(),
     .RESETB(1'b1),
     .BYPASS(1'b0),
     .LATCHINPUTVALUE(),
@@ -48,7 +47,7 @@ module top (
 
   localparam TEXT_LEN = 13;
 
-  assign leds = {uart_we, uart_re, uart_wait, state};
+  assign leds = uart_do;
   assign pin_led = 1;
 
   reg [7:0] uart_di;

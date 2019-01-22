@@ -36,7 +36,6 @@ module top (
     .PLLOUTCORE(clk_48mhz),
     .PLLOUTGLOBAL(),
     .EXTFEEDBACK(),
-    .DYNAMICDELAY(),
     .RESETB(1'b1),
     .BYPASS(1'b0),
     .LATCHINPUTVALUE(),
