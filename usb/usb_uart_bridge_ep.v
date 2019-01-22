@@ -22,7 +22,7 @@ module usb_uart_bridge_ep (
   output reg in_ep_req,
   input in_ep_grant,
   input in_ep_data_free,
-  output in_ep_data_put,
+  output reg in_ep_data_put,
   output [7:0] in_ep_data,
   output reg in_ep_data_done = 0,
   output in_ep_stall,
@@ -32,7 +32,7 @@ module usb_uart_bridge_ep (
   input uart_we,
   input uart_re,
   input [7:0] uart_di,
-  output [7:0] uart_do,
+  output reg [7:0] uart_do,
   output reg uart_wait = 0
 
 );
