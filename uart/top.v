@@ -34,26 +34,17 @@ module top (
   ) usb_pll_inst (
     .REFERENCECLK(pin_clk),
     .PLLOUTCORE(clk_48mhz),
-    .PLLOUTGLOBAL(),
-    .EXTFEEDBACK(),
     .RESETB(1'b1),
-    .BYPASS(1'b0),
-    .LATCHINPUTVALUE(),
-    .LOCK(),
-    .SDI(),
-    .SDO(),
-    .SCLK()
+    .BYPASS(1'b0)
   );
 
-  localparam TEXT_LEN = 13;
-
-  assign leds = uart_do;
   assign pin_led = 1;
+  assign leds = uart_di;
 
   reg [7:0] uart_di;
-  wire [7:0] uart_do;
+  reg [7:0] uart_do;
   reg uart_re, uart_we;
-  wire uart_wait;
+  reg uart_wait;
 
   // Generate reset signal
   reg [5:0] reset_cnt = 0;
@@ -61,27 +52,7 @@ module top (
 
   always @(posedge clk_48mhz) reset_cnt <= reset_cnt + !resetn;
 
-  // Create the text string
-  reg [7:0] text [0:TEXT_LEN-1];
-  reg [3:0] char_count;
-
-  initial begin
-    text[0]  <= "H";
-    text[1]  <= "e";
-    text[2]  <= "l";
-    text[3]  <= "l";
-    text[4]  <= "o";
-    text[5]  <= " ";
-    text[6]  <= "W";
-    text[7]  <= "o";
-    text[8]  <= "r";
-    text[9]  <= "l";
-    text[10] <= "d";
-    text[11] <= "!";
-    text[12] <= "\n";
-  end
-
-  // Send message about every second
+  // Echo characters received
   reg delay_count;
   reg [1:0] state = 0;
 
@@ -99,7 +70,6 @@ module top (
           if (&delay_count) state <= 1;
         end 
         1: begin
-          uart_re <= 0;
           uart_di <= uart_do;
           uart_we <= 1;
           state <= 2;
@@ -109,18 +79,6 @@ module top (
         end
         endcase
       end
-
-      /*
-      if (!uart_we) begin // wait a clock cycle before setting write enable again
-        if (char_count == TEXT_LEN) begin
-          if (&delay_count) char_count <= 0; // wait for delay before sending message again
-        end else begin
-          uart_di <= text[char_count];
-          uart_we <= 1;
-          char_count <= char_count + 1;
-        end
-      end
-      */
     end
   end
 
@@ -151,13 +109,6 @@ module top (
   wire usb_n_in;
 
   assign pin_pu = 1'b1;
-
-/*
-  assign pin_usbp = usb_tx_en ? usb_p_tx : 1'bz;
-  assign pin_usbn = usb_tx_en ? usb_n_tx : 1'bz;
-  assign usb_p_rx = usb_tx_en ? 1'b1 : pin_usbp;
-  assign usb_n_rx = usb_tx_en ? 1'b0 : pin_usbn;
-*/
 
   assign usb_p_rx = usb_tx_en ? 1'b1 : usb_p_in;
   assign usb_n_rx = usb_tx_en ? 1'b0 : usb_n_in;
