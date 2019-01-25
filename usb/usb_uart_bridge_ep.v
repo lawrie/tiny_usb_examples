@@ -33,8 +33,8 @@ module usb_uart_bridge_ep (
   input uart_re,
   input [7:0] uart_di,
   output reg [7:0] uart_do,
-  output reg uart_wait = 0
-
+  output reg uart_wait = 0,
+  output reg uart_ready
 );
 
   assign out_ep_stall = 1'b0;
@@ -56,6 +56,7 @@ module usb_uart_bridge_ep (
     in_ep_data_put <= 0;
     in_ep_data_done <= 0;
     get_out_data <= 0;
+    uart_ready <= 0;
 
     case (state) 
     0: begin
@@ -64,7 +65,6 @@ module usb_uart_bridge_ep (
         uart_wait <= 1;
       end 
       else if (uart_re && out_data_ready) begin
-        uart_wait <= 1;
         state <= 5;
         get_out_data <= 1;
       end
@@ -92,11 +92,11 @@ module usb_uart_bridge_ep (
     end
     5: begin
       state <= 6;
-      uart_wait <= 0;
     end
     6: begin
       uart_do <= out_ep_data;
       state <= 4;
+      uart_ready <= 1;
     end  
     endcase
   end

@@ -39,47 +39,37 @@ module top (
   );
 
   assign pin_led = 1;
-  assign leds = uart_di;
+  assign leds = uart_do;
 
-  reg [7:0] uart_di;
   reg [7:0] uart_do;
   reg uart_re, uart_we;
-  reg uart_wait;
+  reg uart_wait, uart_ready;
 
   // Generate reset signal
   reg [5:0] reset_cnt = 0;
   wire resetn = &reset_cnt;
+  reg state = 0;
 
   always @(posedge clk_48mhz) reset_cnt <= reset_cnt + !resetn;
 
   // Echo characters received
-  reg delay_count;
-  reg [1:0] state = 0;
-
   always @(posedge clk_48mhz) begin
-    delay_count <= delay_count + 1;
-
-    if (resetn && !uart_wait) begin
-      uart_we <= 0;
-      uart_re <= 0;
-
-      if (!uart_we && !uart_re) begin
-        case (state)
-        0:begin
-          uart_re <= 1;
-          if (&delay_count) state <= 1;
-        end 
-        1: begin
-          uart_di <= uart_do;
-          uart_we <= 1;
-          state <= 2;
-        end
-        2: begin
-          if (&delay_count) state <= 0;
-        end
-        endcase
+    case (state)
+    0: begin // Reading
+      uart_re <= 1;
+      if (uart_ready) begin
+        uart_we <= 1;
+        state <= 1;
+        uart_re <= 0;
       end
     end
+    1: begin // Writing
+      if (!uart_wait) begin
+        uart_we <= 0;
+        state <= 0;
+      end
+    end
+    endcase
   end
 
   // usb uart
@@ -95,9 +85,10 @@ module top (
 
     .uart_we  (uart_we),
     .uart_re  (uart_re),
-    .uart_di  (uart_di),
+    .uart_di  (uart_do),
     .uart_do  (uart_do),
-    .uart_wait(uart_wait)
+    .uart_wait(uart_wait),
+    .uart_ready(uart_ready)
   );
 
   wire usb_p_tx;
