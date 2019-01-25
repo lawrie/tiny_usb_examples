@@ -3,7 +3,7 @@ int ledState = 0;
 int previousMillis = 0;
 const long interval = 100000;
 
-void setup() { LED = 0xFF; }
+void setup() { LED = 0x0; }
 
 void loop()
 {
@@ -12,8 +12,7 @@ currentMillis++;
 if (currentMillis - previousMillis >= interval)
   {
     previousMillis = currentMillis;
-    if (ledState == 0) ledState = 0x0F;
-    else ledState = ledState / 2;
+    ledState ^= 1;
     LED = ledState;
   }
 }
