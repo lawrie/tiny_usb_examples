@@ -52,7 +52,7 @@ module top (
 
   reg [7:0] uart_di;
   wire [7:0] uart_do;
-  reg uart_re, uart_we;
+  reg uart_re = 0, uart_we;
   wire uart_wait;
 
   // Generate reset signal
@@ -90,7 +90,6 @@ module top (
 
     if (resetn && !uart_wait) begin
       uart_we <= 0;
-      uart_re <= 0;
 
       if (!uart_we) begin // wait a clock cycle before setting write enable again
         if (char_count == TEXT_LEN) begin

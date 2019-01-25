@@ -59,34 +59,18 @@ next:
 	cnt = 2;
 
 loop:
-	/* Blink LEDs while waiting for serial input */
 	do {
-		#if 0
-		if (pos < 0) {
-			// RDTSC(val);
-			val++;
-			if (val & 0x08000000)
-				c = 0xff;
-			else
-				c = 0;
-			if ((val & 0xff) > ((val >> 19) & 0xff))
-				LED = c ^ 0x0f;
-			else
-				LED = c ^ 0xf0;
-		} else
-			LED = (int) cp >> 8;
-		#endif
 		c = reg_uart_data;
-                //LED = 1;
 	} while ( (c & 0x100) == 0);
 	// c = getchar();
 	c &= 0xFF;
-        LED = 1;
+        //LED = 1;
 
 	if (pos < 0) {
-		if (c == 'S')
+		if (c == 'S') {
+			LED = 1;
 			pos = 0;
-		else {
+		} else {
 			if (c == '\r') /* CR ? */
 				goto prompt;
 			/* Echo char */
@@ -113,7 +97,7 @@ loop:
 		if (val >= 7 && val <= 9)
 		{
 			__asm __volatile__(
-			"li s0, 0x00002000;"	/* 32K RAM top = stack address */
+			"li s0, 0x00002000;"	/* 8K RAM top = stack address */
 			"mv ra, zero;"
 			"jr %0;"
 			: 

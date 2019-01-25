@@ -45,20 +45,22 @@ module top(
     .SCLK()
   );
 
-  //assign leds = uart_reg_dat_do;
-
   reg clk_24mhz = 0;
 
-  always @(posedge clk_48mhz) clk_24mhz <= ~clk_24mhz;
+  always @(posedge clk_48mhz) begin
+    clk_24mhz <= ~clk_24mhz;
+  end
 
   reg [25:0] reset_cnt = 0;
   wire resetn = &reset_cnt;
 
   always @(posedge clk_24mhz) begin
       reset_cnt <= reset_cnt + !resetn;
+      uart_ready1 <= uart_ready;
+      uart_ready2 <= uart_ready1;
   end
 
-  parameter integer MEM_WORDS = 3584;
+  parameter integer MEM_WORDS = 2048;
   parameter [31:0] STACKADDR = 32'h 0000_0000 + (4*MEM_WORDS);       // end of memory
   parameter [31:0] PROGADDR_RESET = 32'h 0000_0000;       // start of memory
 
@@ -75,12 +77,12 @@ module top(
   wire [3:0] mem_wstrb;
   wire [31:0] mem_rdata;
 
-  wire uart_reg_dat_wait;
+  reg uart_reg_dat_wait, uart_ready, uart_ready1, uart_ready2;
   wire [7:0] uart_reg_dat_do;
 
   always @(posedge clk_24mhz) begin
     ram_ready <= 1'b0;
-    leds <= {mem_valid, mem_ready, uart_reg_dat_sel, uart_reg_dat_wait, uart_reg_dat_do[3:0]};
+    leds <= {mem_valid, mem_ready, uart_reg_dat_sel, uart_reg_dat_wait, uart_ready};
     if (mem_addr[31:24] == 8'h00 && mem_valid) begin
       if (mem_wstrb[0]) ram[mem_addr[23:2]][7:0] <= mem_wdata[7:0];
       if (mem_wstrb[1]) ram[mem_addr[23:2]][15:8] <= mem_wdata[15:8];
@@ -105,10 +107,8 @@ module top(
   assign iomem_wdata = mem_wdata;
 
   wire uart_reg_dat_sel = mem_valid && (mem_addr == 32'h 0200_0008);
-  reg uart_reg_dat_sel1;
 
   always @(posedge clk_24mhz) begin
-    uart_reg_dat_sel1 <= uart_reg_dat_sel;
     iomem_ready <= 1'b0;
     if (iomem_valid && iomem_wstrb[0] && mem_addr == 32'h 0200_0000) begin
       pin_led <= iomem_wdata[0];
@@ -117,10 +117,11 @@ module top(
   end
 
   assign mem_ready = (iomem_valid && iomem_ready) ||
-         (uart_reg_dat_sel && !uart_reg_dat_wait) ||
+         (uart_reg_dat_sel && !uart_reg_dat_wait && mem_wstrb[0]) ||
+         (uart_reg_dat_sel && (uart_ready | uart_ready1 | uart_ready2) && !mem_wstrb[0]) ||
 	 ram_ready;
 
-  assign mem_rdata = uart_reg_dat_sel ? uart_reg_dat_do : ram_rdata;
+  assign mem_rdata = uart_reg_dat_sel ? {1'b1, uart_reg_dat_do} : ram_rdata;
 
   picorv32 #(
     .STACKADDR(STACKADDR),
@@ -159,7 +160,8 @@ module top(
     .uart_re  (uart_reg_dat_sel && !mem_wstrb[0]),
     .uart_di  (mem_wdata[7:0]),
     .uart_do  (uart_reg_dat_do),
-    .uart_wait(uart_reg_dat_wait)
+    .uart_wait(uart_reg_dat_wait),
+    .uart_ready(uart_ready)
   );
 
   wire usb_p_tx;
