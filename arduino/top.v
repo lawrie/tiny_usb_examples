@@ -68,6 +68,7 @@ module top(
   initial $readmemh("firmware.hex", ram);
   reg [31:0] ram_rdata;
   reg ram_ready;
+  reg [7:0] reg_leds;
 
   wire mem_valid;
   wire mem_instr;
@@ -82,15 +83,14 @@ module top(
 
   always @(posedge clk_24mhz) begin
     ram_ready <= 1'b0;
-    leds <= {mem_valid, mem_ready, uart_reg_dat_sel, uart_reg_dat_wait, uart_ready};
     if (mem_addr[31:24] == 8'h00 && mem_valid) begin
       if (mem_wstrb[0]) ram[mem_addr[23:2]][7:0] <= mem_wdata[7:0];
       if (mem_wstrb[1]) ram[mem_addr[23:2]][15:8] <= mem_wdata[15:8];
       if (mem_wstrb[2]) ram[mem_addr[23:2]][23:16] <= mem_wdata[23:16];
       if (mem_wstrb[3]) ram[mem_addr[23:2]][31:24] <= mem_wdata[31:24];
 
-        ram_rdata <= ram[mem_addr[23:2]];
-        ram_ready <= 1'b1;
+      ram_rdata <= ram[mem_addr[23:2]];
+      ram_ready <= 1'b1;
     end
   end
 
@@ -113,15 +113,25 @@ module top(
     if (iomem_valid && iomem_wstrb[0] && mem_addr == 32'h 0200_0000) begin
       pin_led <= iomem_wdata[0];
       iomem_ready <= 1'b1;
+    end else if (mem_addr[31:24] > 8'h02) begin
+      if (mem_addr == 32'h ffff_ff10) begin
+        if (mem_wstrb[0]) begin
+          reg_leds <= iomem_wdata[7:0];
+          leds <= iomem_wdata[7:0];
+        end
+      end
+      iomem_ready <= 1'b1;
     end
   end
 
   assign mem_ready = (iomem_valid && iomem_ready) ||
          (uart_reg_dat_sel && !uart_reg_dat_wait && mem_wstrb[0]) ||
          (uart_reg_dat_sel && (uart_ready | uart_ready1 | uart_ready2) && !mem_wstrb[0]) ||
-	 ram_ready;
+         ram_ready;
 
-  assign mem_rdata = uart_reg_dat_sel ? {1'b1, uart_reg_dat_do} : ram_rdata;
+  assign mem_rdata = uart_reg_dat_sel ? {1'b1, uart_reg_dat_do} : 
+         mem_addr == 32'h ffff_ff10 ? reg_leds :
+         ram_rdata;
 
   picorv32 #(
     .STACKADDR(STACKADDR),
