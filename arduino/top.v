@@ -5,9 +5,20 @@ module top(
   inout  pin_usbn,
   output pin_pu,
 
+  input  [7:0] pin_buttons,
   output reg pin_led,
   output reg [7:0] leds
 );
+
+  wire [7:0] buttons;
+
+  SB_IO #(
+    .PIN_TYPE(6'b 0000_01),
+    .PULLUP(1'b 1)
+  ) button_input[7:0] (
+    .PACKAGE_PIN(pin_buttons),
+    .D_IN_0(buttons)
+  );
 
   ////////////////////////////////////////////////////////////////////////////////
   ////////////////////////////////////////////////////////////////////////////////
@@ -126,11 +137,12 @@ module top(
 
   assign mem_ready = (iomem_valid && iomem_ready) ||
          (uart_reg_dat_sel && !uart_reg_dat_wait && mem_wstrb[0]) ||
-         (uart_reg_dat_sel && (uart_ready | uart_ready1 | uart_ready2) && !mem_wstrb[0]) ||
+         (uart_reg_dat_sel && (uart_ready | uart_ready1) && !mem_wstrb[0]) ||
          ram_ready;
 
   assign mem_rdata = uart_reg_dat_sel ? {1'b1, uart_reg_dat_do} : 
          mem_addr == 32'h ffff_ff10 ? reg_leds :
+         mem_addr == 32'h ffff_ff00 ? buttons :
          ram_rdata;
 
   picorv32 #(

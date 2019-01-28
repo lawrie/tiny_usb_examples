@@ -13,3 +13,14 @@ set_io -nowarn leds[4] A9 # pin 18
 set_io -nowarn leds[5] B8 # pin 19
 set_io -nowarn leds[6] A8 # pin 20
 set_io -nowarn leds[7] B7 # pin 21
+
+# Buttons
+set_io -nowarn pin_buttons[0] H2 # pin 13
+set_io -nowarn pin_buttons[1] J1 # pin 12
+set_io -nowarn pin_buttons[2] H1 # pin 11
+set_io -nowarn pin_buttons[3] G2 # pin 10
+set_io -nowarn pin_buttons[4] E1 # pin 9
+set_io -nowarn pin_buttons[5] E2 # pin 8
+set_io -nowarn pin_buttons[6] D1 # pin 7
+set_io -nowarn pin_buttons[7] D2 # pin 6
+
