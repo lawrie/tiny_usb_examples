@@ -5,7 +5,7 @@
 #define LED (*(volatile uint32_t*)0x02000000)
 
 #define reg_uart_clkdiv (*(volatile uint32_t*)0x02000004)
-#define reg_uart_data (*(volatile uint32_t*)0x02000008)
+#define reg_uart_data (*(volatile uint32_t*)0xFFFFFB00)
 
 #define F_CPU 25000000 // Hz
 #define BAUD_RATE 115200 // bit/s

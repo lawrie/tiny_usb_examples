@@ -7,7 +7,10 @@ module top(
 
   input  [7:0] pin_buttons,
   output reg pin_led,
-  output reg [7:0] leds
+  output reg [7:0] pin_leds,
+  inout [5:0] pin_gpio,
+  output pin_tx,
+  input pin_rx
 );
 
   wire [7:0] buttons;
@@ -18,6 +21,22 @@ module top(
   ) button_input[7:0] (
     .PACKAGE_PIN(pin_buttons),
     .D_IN_0(buttons)
+  );
+
+  localparam IO_LENGTH = 6;
+
+  wire [IO_LENGTH-1:0] gpio_in;
+  reg [IO_LENGTH-1:0] gpio_out;
+  reg [IO_LENGTH-1:0] gpio_dir;
+
+  SB_IO #(
+    .PIN_TYPE(6'b 1010_01),
+    .PULLUP(1'b 0)
+  ) ios [IO_LENGTH-1:0] (
+    .PACKAGE_PIN(pin_gpio),
+    .OUTPUT_ENABLE(gpio_dir),
+    .D_OUT_0(gpio_out),
+    .D_IN_0(gpio_in)
   );
 
   ////////////////////////////////////////////////////////////////////////////////
@@ -117,7 +136,7 @@ module top(
   assign iomem_addr = mem_addr;
   assign iomem_wdata = mem_wdata;
 
-  wire uart_reg_dat_sel = mem_valid && (mem_addr == 32'h 0200_0008);
+  wire uart_reg_dat_sel = mem_valid && (mem_addr == 32'h FFFF_FB00);
 
   always @(posedge clk_24mhz) begin
     iomem_ready <= 1'b0;
@@ -125,13 +144,25 @@ module top(
       pin_led <= iomem_wdata[0];
       iomem_ready <= 1'b1;
     end else if (mem_addr[31:24] > 8'h02) begin
-      if (mem_addr == 32'h ffff_ff10) begin
+      if (mem_addr == 32'h ffff_ff10) begin // leds
         if (mem_wstrb[0]) begin
           reg_leds <= iomem_wdata[7:0];
-          leds <= iomem_wdata[7:0];
+          pin_leds <= iomem_wdata[7:0];
         end
+        iomem_ready <= 1'b1;
+      end else if (mem_addr == 32'h FFFF_F800) begin // gpio data
+        if (mem_wstrb[0]) begin
+          gpio_out <= iomem_wdata[7:0];
+        end           
+        iomem_ready <= 1'b1;
+      end else if (mem_addr == 32'h FFFF_F804) begin // gpio ctrl
+        if (mem_wstrb[0]) begin
+          gpio_dir <= iomem_wdata[7:0];
+        end
+        iomem_ready <= 1'b1;
+      end else if (mem_addr != 32'h FFFF_FB00) begin
+        iomem_ready <= 1'b1;
       end
-      iomem_ready <= 1'b1;
     end
   end
 
@@ -143,6 +174,8 @@ module top(
   assign mem_rdata = uart_reg_dat_sel ? {1'b1, uart_reg_dat_do} : 
          mem_addr == 32'h ffff_ff10 ? reg_leds :
          mem_addr == 32'h ffff_ff00 ? buttons :
+         //mem_addr == 32'h ffff_f818 ? gpio_in :
+         iomem_valid ? 32'd0 :
          ram_rdata;
 
   picorv32 #(

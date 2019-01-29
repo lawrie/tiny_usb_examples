@@ -5,14 +5,14 @@ set_io pin_pu A3
 set_io pin_clk B2
 
 # Diagnostic Leds
-set_io -nowarn leds[0] H9 # pin 14
-set_io -nowarn leds[1] D9 # pin 15
-set_io -nowarn leds[2] D8 # pin 16
-set_io -nowarn leds[3] C9 # pin 17
-set_io -nowarn leds[4] A9 # pin 18
-set_io -nowarn leds[5] B8 # pin 19
-set_io -nowarn leds[6] A8 # pin 20
-set_io -nowarn leds[7] B7 # pin 21
+set_io -nowarn pin_leds[0] H9 # pin 14
+set_io -nowarn pin_leds[1] D9 # pin 15
+set_io -nowarn pin_leds[2] D8 # pin 16
+set_io -nowarn pin_leds[3] C9 # pin 17
+set_io -nowarn pin_leds[4] A9 # pin 18
+set_io -nowarn pin_leds[5] B8 # pin 19
+set_io -nowarn pin_leds[6] A8 # pin 20
+set_io -nowarn pin_leds[7] B7 # pin 21
 
 # Buttons
 set_io -nowarn pin_buttons[0] H2 # pin 13
@@ -23,4 +23,16 @@ set_io -nowarn pin_buttons[4] E1 # pin 9
 set_io -nowarn pin_buttons[5] E2 # pin 8
 set_io -nowarn pin_buttons[6] D1 # pin 7
 set_io -nowarn pin_buttons[7] D2 # pin 6
+
+# GPIO
+
+set_io -nowarn pin_gpio[0] A7 pin 22
+set_io -nowarn pin_gpio[1] B6 pin 23
+set_io -nowarn pin_gpio[2] A6 pin 24
+set_io -nowarn pin_gpio[3] C1 pin 5
+set_io -nowarn pin_gpio[4] C2 pin 4
+set_io -nowarn pin_gpio[5] B1 pin 3
+
+set_io -nowarn pin_rx A1 # pin 2
+set_io -nowarn pin_tx A2 # pin 1
 
