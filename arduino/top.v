@@ -87,12 +87,12 @@ module top(
   always @(posedge clk_24mhz) begin
       reset_cnt <= reset_cnt + !resetn;
       uart_ready1 <= uart_ready;
-      uart_ready2 <= uart_ready1;
+      uart_ready2 <= uart_ready1; // Not used, but breaks when I remove it
   end
 
   parameter integer MEM_WORDS = 2048;
-  parameter [31:0] STACKADDR = 32'h 0000_0000 + (4*MEM_WORDS);       // end of memory
-  parameter [31:0] PROGADDR_RESET = 32'h 0000_0000;       // start of memory
+  parameter [31:0] STACKADDR = 32'h 0000_0000 + (4*MEM_WORDS); // end of memory
+  parameter [31:0] PROGADDR_RESET = 32'h 0000_0000;            // start of memory
 
   reg [31:0] ram [0:MEM_WORDS-1];
   initial $readmemh("firmware.hex", ram);
@@ -140,42 +140,45 @@ module top(
 
   always @(posedge clk_24mhz) begin
     iomem_ready <= 1'b0;
-    if (iomem_valid && iomem_wstrb[0] && mem_addr == 32'h 0200_0000) begin
-      pin_led <= iomem_wdata[0];
-      iomem_ready <= 1'b1;
-    end else if (mem_addr[31:24] > 8'h02) begin
-      if (mem_addr == 32'h ffff_ff10) begin // leds
-        if (mem_wstrb[0]) begin
-          reg_leds <= iomem_wdata[7:0];
-          pin_leds <= iomem_wdata[7:0];
+    if (iomem_valid) begin
+      if (iomem_wstrb[0] && mem_addr == 32'h 0200_0000) begin // LED
+        pin_led <= iomem_wdata[0];
+        iomem_ready <= 1'b1;
+      end else if (mem_addr[31:24] > 8'h02) begin
+        if (mem_addr == 32'h ffff_ff10) begin // leds (output pins)
+          if (mem_wstrb[0]) begin
+            reg_leds <= iomem_wdata[7:0];
+            pin_leds <= iomem_wdata[7:0];
+          end
+          iomem_ready <= 1'b1;
+        end else if (mem_addr == 32'h FFFF_F800) begin // gpio data
+          if (mem_wstrb[0]) begin
+            gpio_out <= iomem_wdata[7:0];
+          end           
+          iomem_ready <= 1'b1;
+        end else if (mem_addr == 32'h FFFF_F804) begin // gpio ctrl
+          if (mem_wstrb[0]) begin
+            gpio_dir <= iomem_wdata[7:0];
+          end
+          iomem_ready <= 1'b1;
+        end else if (mem_addr != 32'h FFFF_FB00) begin // Not uart
+          iomem_ready <= 1'b1;
+          pin_leds <= mem_addr[7:0]; // Diagnostics
         end
-        iomem_ready <= 1'b1;
-      end else if (mem_addr == 32'h FFFF_F800) begin // gpio data
-        if (mem_wstrb[0]) begin
-          gpio_out <= iomem_wdata[7:0];
-        end           
-        iomem_ready <= 1'b1;
-      end else if (mem_addr == 32'h FFFF_F804) begin // gpio ctrl
-        if (mem_wstrb[0]) begin
-          gpio_dir <= iomem_wdata[7:0];
-        end
-        iomem_ready <= 1'b1;
-      end else if (mem_addr != 32'h FFFF_FB00) begin
-        iomem_ready <= 1'b1;
       end
     end
   end
 
-  assign mem_ready = (iomem_valid && iomem_ready) ||
-         (uart_reg_dat_sel && !uart_reg_dat_wait && mem_wstrb[0]) ||
-         (uart_reg_dat_sel && (uart_ready | uart_ready1) && !mem_wstrb[0]) ||
+  assign mem_ready = (iomem_valid && iomem_ready) || // I/O other than uart
+         (uart_reg_dat_sel && !uart_reg_dat_wait && mem_wstrb[0]) || // uart write
+         (uart_reg_dat_sel && (uart_ready | uart_ready1) && !mem_wstrb[0]) || // uart read
          ram_ready;
 
-  assign mem_rdata = uart_reg_dat_sel ? {1'b1, uart_reg_dat_do} : 
-         mem_addr == 32'h ffff_ff10 ? reg_leds :
-         mem_addr == 32'h ffff_ff00 ? buttons :
-         //mem_addr == 32'h ffff_f818 ? gpio_in :
-         iomem_valid ? 32'd0 :
+  assign mem_rdata = uart_reg_dat_sel ? {1'b1, uart_reg_dat_do} : // getchar
+         mem_addr == 32'h ffff_ff10 ? reg_leds : // Read from leds (needed)
+         mem_addr == 32'h ffff_ff00 ? buttons :  // input pins
+         mem_addr == 32'h ffff_f818 ? gpio_in :  // read from gpio pins
+         iomem_valid ? 32'd0 : // Return zero for any other I/O reads
          ram_rdata;
 
   picorv32 #(
@@ -215,8 +218,8 @@ module top(
     .uart_re  (uart_reg_dat_sel && !mem_wstrb[0]),
     .uart_di  (mem_wdata[7:0]),
     .uart_do  (uart_reg_dat_do),
-    .uart_wait(uart_reg_dat_wait),
-    .uart_ready(uart_ready)
+    .uart_wait(uart_reg_dat_wait), // tx wait
+    .uart_ready(uart_ready)        // rx ready
   );
 
   wire usb_p_tx;
